@@ -1,0 +1,61 @@
+version: '3'
+
+services:
+  test_app:
+    build:
+      context: .
+    image: test_app
+    container_name: test_app
+    depends_on:
+      - test_mysql
+    volumes:
+      - .:/src
+    env_file:
+      - ./.env
+    ports:
+      - "8083:8000"
+    command: python manage.py runserver 0.0.0.0:8000
+
+  test_mysql:
+    image: mysql:8.0
+    container_name: test_mysql
+    env_file:
+      - .env
+    ports:
+      - "3307:3306"
+    volumes:
+      - test_mysql_data:/var/lib/mysql
+
+  celery:
+    build: .
+    container_name: test_celery
+    command: celery -A config worker -l INFO -c 1
+    volumes:
+      - .:/src
+    env_file:
+      - ./.env
+    depends_on:
+      - test_app
+      - redis
+  celery_monitor:
+    build: .
+    container_name: test_celery_monitor
+    command: celery -A config flower --port=5555
+    volumes:
+      - .:/src
+    env_file:
+      - ./.env
+    depends_on:
+      - test_app
+      - redis
+      - celery
+    ports:
+      - "5555:5555"
+
+  redis:
+      image: "redis:alpine"
+
+volumes:
+  test_mysql_data:
+  cache:
+    driver: local
