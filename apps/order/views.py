@@ -1,8 +1,13 @@
+from celery.result import AsyncResult
 from django.http import HttpResponse
 
 from apps.order.repository import order_create
 
 
 def create_order(request):
-    order_create.apply_async()
-    return HttpResponse("test")
+    res = order_create.delay()
+
+    response = res.wait(timeout=5, interval=0.5)
+    print("response.get()")
+    print(res)
+    return HttpResponse(res)
